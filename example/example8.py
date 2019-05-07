@@ -19,11 +19,16 @@ topk = 5
 
 with open('README.md') as fp:
     questions = [v.replace(prefix_q, '').strip() for v in fp if v.strip() and v.startswith(prefix_q)]
+    #等效于
+#     for v in fp：
+#         if v.strip() and v.startswith(prefix_q):
+#             v.replace(prefix_q,'').strip()
+#             做成list
     print('%d questions loaded, avg. len of %d' % (len(questions), np.mean([len(d.split()) for d in questions])))
 
 with BertClient(port=4000, port_out=4001) as bc:
-    doc_vecs = bc.encode(questions)
-
+    doc_vecs = bc.encode(questions)   #encode question
+    
     while True:
         query = input(colored('your question: ', 'green'))
         query_vec = bc.encode([query])[0]

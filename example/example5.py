@@ -21,18 +21,18 @@ from tensorflow.python.estimator.canned.dnn import DNNClassifier
 from tensorflow.python.estimator.run_config import RunConfig
 from tensorflow.python.estimator.training import TrainSpec, EvalSpec, train_and_evaluate
 
-os.environ['CUDA_VISIBLE_DEVICES'] = str(GPUtil.getFirstAvailable()[0])
+os.environ['CUDA_VISIBLE_DEVICES'] = str(GPUtil.getFirstAvailable()[0]) #第一个可用的gpu
 tf.logging.set_verbosity(tf.logging.INFO)
 
+#DNNClassifier 的训练和评估样本文件
 train_fp = ['/data/cips/data/lab/data/dataset/final_all_data/exercise_contest/data_train.json']
 eval_fp = ['/data/cips/data/lab/data/dataset/final_all_data/exercise_contest/data_test.json']
 
 batch_size = 128
-num_parallel_calls = 4
+num_parallel_calls = 4# 并行连接数
 num_concurrent_clients = num_parallel_calls * 2  # should be at least greater than `num_parallel_calls`
 
-bc = ConcurrentBertClient(port=5557, port_out=5558)
-
+bc = ConcurrentBertClient(port=5557, port_out=5558)#创建 ConcurrentBertClient对象
 # hardcoded law_ids
 laws = [184, 336, 314, 351, 224, 132, 158, 128, 223, 308, 341, 349, 382, 238, 369, 248, 266, 313, 127, 340, 288, 172,
         209, 243, 302, 200, 227, 155, 147, 143, 261, 124, 359, 343, 291, 241, 235, 367, 393, 274, 240, 269, 199, 119,
@@ -46,15 +46,15 @@ laws = [184, 336, 314, 351, 224, 132, 158, 128, 223, 308, 341, 349, 382, 238, 36
 
 laws_str = [str(x) for x in laws]
 
-
-def get_encodes(x):
+# 封装的 encode 方法
+def get_encodes(x): # x传入样本文件.json
     # x is `batch_size` of lines, each of which is a json object
-    samples = [json.loads(l) for l in x]
+    samples = [json.loads(l) for l in x]  #样本
     text = [s['fact'][:50] + s['fact'][-50:] for s in samples]
-    features = bc.encode(text)
+    features = bc.encode(text)  # bc.encode方法与服务器链接 传入的是list
     # randomly choose a label
     labels = [[str(random.choice(s['meta']['relevant_articles']))] for s in samples]
-    return features, labels
+    return features, labels 
 
 
 config = tf.ConfigProto()
@@ -64,11 +64,11 @@ run_config = RunConfig(model_dir='/data/cips/save/law-model',
                        save_checkpoints_steps=1000)
 
 estimator = DNNClassifier(
-    hidden_units=[512],
-    feature_columns=[tf.feature_column.numeric_column('feature', shape=(768,))],
-    n_classes=len(laws),
-    config=run_config,
-    label_vocabulary=laws_str,
+    hidden_units=[512], #中间层数据
+    feature_columns=[tf.feature_column.numeric_column('feature', shape=(768,))], #特征列 连接input到modle
+    n_classes=len(laws), #分类数
+    config=run_config, #运行设置
+    label_vocabulary=laws_str, #label的表示
     dropout=0.1)
 
 input_fn = lambda fp: (tf.data.TextLineDataset(fp)
@@ -78,7 +78,7 @@ input_fn = lambda fp: (tf.data.TextLineDataset(fp)
                             num_parallel_calls=num_parallel_calls)
                        .map(lambda x, y: ({'feature': x}, y))
                        .prefetch(20))
-
+# train eval 
 train_spec = TrainSpec(input_fn=lambda: input_fn(train_fp))
 eval_spec = EvalSpec(input_fn=lambda: input_fn(eval_fp), throttle_secs=0)
 train_and_evaluate(estimator, train_spec, eval_spec)

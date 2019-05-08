@@ -15,7 +15,7 @@ from bert_serving.client import BertClient
 from termcolor import colored
 
 prefix_q = '##### **Q:** '
-topk = 5
+topk = 5   #相似度前5的句子
 
 with open('README.md') as fp:
     questions = [v.replace(prefix_q, '').strip() for v in fp if v.strip() and v.startswith(prefix_q)]
